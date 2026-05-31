@@ -49,22 +49,19 @@
     background: rgba(236,229,212,.68); border: 2px solid var(--ink2); border-radius: 18px;
     padding: 4px 16px; pointer-events: none; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
 
-  /* 关卡开场的操作提示横幅：淡入数秒后自动淡出，不拦截点击 */
-  .op-hints { position: absolute; top: 56px; left: 50%; transform: translate(-50%, -6px);
-    max-width: 88%; box-sizing: border-box; pointer-events: none; z-index: 6;
-    background: rgba(236,229,212,.92); border: 2px solid var(--ink2); border-radius: 14px;
-    padding: 12px 18px; text-align: left; color: var(--ink); letter-spacing: 1px;
-    box-shadow: 0 6px 20px rgba(27,27,32,.18); text-shadow: 0 1px 0 rgba(255,255,255,.4);
-    opacity: 0; visibility: hidden; transition: opacity .5s ease, transform .5s ease; }
-  .op-hints.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
-  .op-hints .op-title { font-size: 18px; font-weight: 900; letter-spacing: 4px; color: var(--seal);
-    text-align: center; border-bottom: 2px dashed var(--ink2); padding-bottom: 7px; margin-bottom: 9px; }
-  .op-hints .op-row { font-size: 14px; line-height: 1.7; }
-  .op-hints .op-row b { display: inline-block; min-width: 2.4em; color: var(--seal); font-weight: 900; }
+  /* 常驻操作提示：靠左上、半透明、不拦截点击，全程显示 */
+  .op-hints { position: absolute; top: 50px; left: 10px; max-width: 52%; box-sizing: border-box;
+    pointer-events: none; z-index: 5; display: none;
+    background: rgba(236,229,212,.6); border: 1.5px solid rgba(27,27,32,.55); border-radius: 10px;
+    padding: 6px 10px; text-align: left; color: var(--ink2); letter-spacing: .5px;
+    text-shadow: 0 1px 0 rgba(255,255,255,.45); }
+  .op-hints.show { display: block; }
+  .op-hints .op-row { font-size: 12px; line-height: 1.75; white-space: nowrap; }
+  .op-hints .op-row b { color: var(--seal); font-weight: 900; margin-right: 5px;
+    padding: 0 4px; border: 1px solid rgba(176,64,47,.5); border-radius: 5px; }
   @media (max-width: 760px) {
-    .op-hints { top: 50px; padding: 10px 14px; }
-    .op-hints .op-title { font-size: 16px; }
-    .op-hints .op-row { font-size: 12.5px; line-height: 1.65; }
+    .op-hints { top: 46px; max-width: 64%; padding: 5px 8px; }
+    .op-hints .op-row { font-size: 11px; line-height: 1.7; }
   }
 
   .skills { position: absolute; bottom: 150px; left: 0; right: 0; display: none; justify-content: center; gap: 26px;
@@ -330,11 +327,9 @@
     <div class="timer"><div class="clock"></div><span id="timeText">00"00</span></div>
     <div class="jump-tip" id="jumpTip">点按空白处跳跃 · 按住滞空</div>
     <div class="op-hints" id="opHints">
-      <div class="op-title">操 作 提 示</div>
-      <div class="op-row"><b>跳跃</b>　点按空白处起跳，按住可滞空</div>
-      <div class="op-row"><b>变色</b>　点「变字」键(或 Shift)切换墨白，须与同色地面相符</div>
-      <div class="op-row"><b>技能</b>　集满飞诗/奔诗后，点「飞天 Z」御风高飞、「疾跑 X」凌空铺路</div>
-      <div class="op-row"><b>连跳</b>　头顶或身侧若有木色平台，接触即可刷新跳跃，连续起跳登高</div>
+      <div class="op-row"><b>变色</b>点「变字」/Shift 换墨白，须合地面色</div>
+      <div class="op-row"><b>技能</b>飞诗满→飞天(Z) · 奔诗满→疾跑(X)</div>
+      <div class="op-row"><b>连跳</b>头顶/身侧木色台，触碰即刷新跳跃</div>
     </div>
     <div id="chalStat" style="display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:14px;font-weight:800;letter-spacing:2px;color:var(--ink2);background:rgba(236,229,212,.6);border:2px solid var(--ink2);border-radius:18px;padding:4px 14px;text-shadow:0 1px 0 rgba(255,255,255,.5)"></div>
     <div class="round-btn" id="btnPause"><div class="bars"><span></span><span></span></div></div>
@@ -3080,7 +3075,6 @@
       this.state = "playing";
       this.paused = false;
       UI.showGame();
-      UI.showOpHints();
       Sound.ensure();
       checkOrientation();
     },
@@ -3096,7 +3090,6 @@
       this.state = "playing";
       this.paused = false;
       UI.showGame();
-      UI.showOpHints();
       Sound.ensure();
       checkOrientation();
     },
@@ -3866,6 +3859,7 @@
       // 对诗V2：隐藏跳跃/技能按钮，换字按钮居中，隐藏顶部诗词栏
       const isCouplet = Game.mode === "couplet";
       this.hud.classList.toggle("couplet-mode", isCouplet);
+      if (isCouplet) this.hideOpHints(); else this.showOpHints();   // 常驻操作提示仅在跑酷/挑战显示
       this.el("poemBar").style.display = isCouplet ? "none" : "block";
       const inkOverlay = document.getElementById('inkTimeOverlay');
       if (inkOverlay) inkOverlay.classList.remove('active');
@@ -4171,18 +4165,14 @@
       this.el("poem").classList.add("show");
     },
     hideGame() { this.hud.style.display = "none"; this.hideOpHints(); },
-    // 关卡开场操作提示：淡入展示数秒后自动淡出
+    // 常驻操作提示：跑酷/挑战模式全程显示，对诗模式不显示
     showOpHints() {
       const el = this.el("opHints");
-      if (!el) return;
-      clearTimeout(this._opHintTimer);
-      el.classList.add("show");
-      this._opHintTimer = setTimeout(() => el.classList.remove("show"), 6500);
+      if (el) el.classList.add("show");
     },
     hideOpHints() {
       const el = this.el("opHints");
       if (el) el.classList.remove("show");
-      clearTimeout(this._opHintTimer);
     },
     showMenu() {
       Game.state = "menu"; this.hideGame(); this.hideOverlays();
