@@ -4402,10 +4402,11 @@
     // btnChange: 普通模式=变色; 对诗模式=短按切字/长按墨时
     (function() {
       const btn = UI.el("btnChange");
-      let pressTimer = null, pressStart = 0, isLongPress = false;
+      let pressTimer = null, pressStart = 0, isLongPress = false, pressActive = false;
       function onDown(e) {
         if (Game.tutorialPause) return;
         e.preventDefault();
+        pressActive = true;                 // 标记一次有效按压
         pressStart = performance.now();
         isLongPress = false;
         if (Game.mode === 'couplet') {
@@ -4415,7 +4416,11 @@
           }, 300);
         }
       }
+      // pointerup / pointerleave / pointercancel 在触屏上会接连触发，
+      // 用 pressActive 作一次性闸门，确保一次点按只触发一次变字（否则会变了又变回去）。
       function onUp(e) {
+        if (!pressActive) return;
+        pressActive = false;
         e.preventDefault();
         if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
         if (Game.mode === 'couplet') {
