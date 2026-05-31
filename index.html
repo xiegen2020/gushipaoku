@@ -49,6 +49,24 @@
     background: rgba(236,229,212,.68); border: 2px solid var(--ink2); border-radius: 18px;
     padding: 4px 16px; pointer-events: none; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
 
+  /* 关卡开场的操作提示横幅：淡入数秒后自动淡出，不拦截点击 */
+  .op-hints { position: absolute; top: 56px; left: 50%; transform: translate(-50%, -6px);
+    max-width: 88%; box-sizing: border-box; pointer-events: none; z-index: 6;
+    background: rgba(236,229,212,.92); border: 2px solid var(--ink2); border-radius: 14px;
+    padding: 12px 18px; text-align: left; color: var(--ink); letter-spacing: 1px;
+    box-shadow: 0 6px 20px rgba(27,27,32,.18); text-shadow: 0 1px 0 rgba(255,255,255,.4);
+    opacity: 0; visibility: hidden; transition: opacity .5s ease, transform .5s ease; }
+  .op-hints.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+  .op-hints .op-title { font-size: 18px; font-weight: 900; letter-spacing: 4px; color: var(--seal);
+    text-align: center; border-bottom: 2px dashed var(--ink2); padding-bottom: 7px; margin-bottom: 9px; }
+  .op-hints .op-row { font-size: 14px; line-height: 1.7; }
+  .op-hints .op-row b { display: inline-block; min-width: 2.4em; color: var(--seal); font-weight: 900; }
+  @media (max-width: 760px) {
+    .op-hints { top: 50px; padding: 10px 14px; }
+    .op-hints .op-title { font-size: 16px; }
+    .op-hints .op-row { font-size: 12.5px; line-height: 1.65; }
+  }
+
   .skills { position: absolute; bottom: 150px; left: 0; right: 0; display: none; justify-content: center; gap: 26px;
     pointer-events: none; }
   .skill-btn { pointer-events: auto; display: none; width: 74px; height: 74px; border-radius: 50%; cursor: pointer;
@@ -311,6 +329,13 @@
   <div class="hud" id="hud" style="display:none">
     <div class="timer"><div class="clock"></div><span id="timeText">00"00</span></div>
     <div class="jump-tip" id="jumpTip">点按空白处跳跃 · 按住滞空</div>
+    <div class="op-hints" id="opHints">
+      <div class="op-title">操 作 提 示</div>
+      <div class="op-row"><b>跳跃</b>　点按空白处起跳，按住可滞空</div>
+      <div class="op-row"><b>变色</b>　点「变字」键(或 Shift)切换墨白，须与同色地面相符</div>
+      <div class="op-row"><b>技能</b>　集满飞诗/奔诗后，点「飞天 Z」御风高飞、「疾跑 X」凌空铺路</div>
+      <div class="op-row"><b>连跳</b>　头顶或身侧若有木色平台，接触即可刷新跳跃，连续起跳登高</div>
+    </div>
     <div id="chalStat" style="display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:14px;font-weight:800;letter-spacing:2px;color:var(--ink2);background:rgba(236,229,212,.6);border:2px solid var(--ink2);border-radius:18px;padding:4px 14px;text-shadow:0 1px 0 rgba(255,255,255,.5)"></div>
     <div class="round-btn" id="btnPause"><div class="bars"><span></span><span></span></div></div>
     <div class="ink-hearts" id="inkHearts" style="display:none"><span class="ink-heart">❤</span><span class="ink-heart">❤</span><span class="ink-heart">❤</span></div>
@@ -1091,8 +1116,8 @@
       moongates: [[70, 3, 2]],
       paifangs: [[-8, 2.5], [120, 2.5]],
       tutorialEvents: [
-        { x: 0, title: "跃龙门", desc: "前方断崖！\n长按屏幕右侧（或空格键）积蓄跳跃力量，松开即可飞身越过悬崖。" },
-        { x: 60, title: "易容切换", desc: "遇到不同颜色的月洞门（结界），必须切换到对应颜色方可穿过。\n点击屏幕左侧（或换挡键）进行颜色切换。" },
+        { x: 0, title: "跃龙门", desc: "前方断崖！\n点按屏幕空白处即可起跳，按住不放可短暂滞空、跳得更远，松开下落。\n小诀窍：头顶或身侧若有木色平台，接触它就能刷新一次跳跃，连续起跳即可登上高台。" },
+        { x: 60, title: "易容切换", desc: "遇到不同颜色的月洞门（结界），必须切换到对应颜色方可穿过。\n点下方的「变字」键（或键盘 Shift）在墨黑 / 素白之间切换。" },
         { x: 90, title: "大招觉醒", desc: "当在关卡中收集满白色「飞诗」（圆牌）或黑色「奔诗」（方牌）后，即可觉醒大招！\n点击下方的「飞天」按钮（或按 Z 键）可御风高飞；\n点击下方的「疾跑」按钮（或按 X 键）可虚空铺路疾行。" }
       ]
     },
@@ -3055,6 +3080,7 @@
       this.state = "playing";
       this.paused = false;
       UI.showGame();
+      UI.showOpHints();
       Sound.ensure();
       checkOrientation();
     },
@@ -3070,6 +3096,7 @@
       this.state = "playing";
       this.paused = false;
       UI.showGame();
+      UI.showOpHints();
       Sound.ensure();
       checkOrientation();
     },
@@ -4143,7 +4170,20 @@
       this.el("poemBLine").textContent = src.blackPoem;
       this.el("poem").classList.add("show");
     },
-    hideGame() { this.hud.style.display = "none"; },
+    hideGame() { this.hud.style.display = "none"; this.hideOpHints(); },
+    // 关卡开场操作提示：淡入展示数秒后自动淡出
+    showOpHints() {
+      const el = this.el("opHints");
+      if (!el) return;
+      clearTimeout(this._opHintTimer);
+      el.classList.add("show");
+      this._opHintTimer = setTimeout(() => el.classList.remove("show"), 6500);
+    },
+    hideOpHints() {
+      const el = this.el("opHints");
+      if (el) el.classList.remove("show");
+      clearTimeout(this._opHintTimer);
+    },
     showMenu() {
       Game.state = "menu"; this.hideGame(); this.hideOverlays();
       Game.loadLevel(0); Game.menuPan = 0;
