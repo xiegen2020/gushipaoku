@@ -17,7 +17,7 @@
   /* ---------- HUD ---------- */
   .hud { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
   .timer { position: absolute; top: 16px; left: 18px; display: flex; align-items: center; gap: 8px;
-    font-size: 28px; font-weight: 800; letter-spacing: 1px; color: var(--ink2);
+    font-size: 34px; font-weight: 800; letter-spacing: 1px; color: var(--ink2);
     text-shadow: 0 1px 0 rgba(255,255,255,.5); }
   .timer .clock { width: 24px; height: 24px; border: 3px solid var(--ink2); border-radius: 50%; position: relative; }
   .timer .clock::after { content: ""; position: absolute; left: 50%; top: 50%; width: 2px; height: 8px;
@@ -32,12 +32,12 @@
   .poembar { position: absolute; top: 58px; left: 18px; display: flex; flex-direction: column; gap: 5px;
     pointer-events: none; max-width: 70vw; }
   .poemrow { display: flex; align-items: center; gap: 7px; }
-  .poemrow .ptag { font-size: 15px; font-weight: 800; letter-spacing: 1px; padding: 1px 7px; border-radius: 4px;
+  .poemrow .ptag { font-size: 18px; font-weight: 800; letter-spacing: 1px; padding: 2px 8px; border-radius: 4px;
     color: var(--paper); }
   #poemWhite .ptag { background: #b5402f; }
   #poemBlack .ptag { background: #2a2a30; }
   .poemrow .pchars { display: flex; gap: 4px; flex-wrap: wrap; }
-  .poemrow .pc { font-size: 21px; font-weight: 800; width: 24px; text-align: center; color: rgba(40,40,46,.32);
+  .poemrow .pc { font-size: 26px; font-weight: 800; width: 29px; text-align: center; color: rgba(40,40,46,.32);
     text-shadow: 0 1px 0 rgba(255,255,255,.4); transition: color .2s, transform .2s; }
   .poemrow .pc.got { color: var(--ink2); }
   .poemrow .pc.cur { color: var(--seal); animation: pcBlink 0.8s ease-in-out infinite; }
@@ -45,7 +45,7 @@
 
   /* ---------- 技能按钮 ---------- */
   .jump-tip { position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-    font-size: 15px; font-weight: 900; letter-spacing: 2px; color: var(--ink2);
+    font-size: 20px; font-weight: 900; letter-spacing: 2px; color: var(--ink2);
     background: rgba(236,229,212,.68); border: 2px solid var(--ink2); border-radius: 18px;
     padding: 4px 16px; pointer-events: none; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
 
@@ -220,7 +220,7 @@
     .ach-progress { justify-content: center; }
     /* 竖屏适配 */
     .hud { padding: 10px; }
-    .timer { font-size: 20px; }
+    .timer { font-size: 26px; }
     .actions { padding: 0 10px 40px; }
     .act-btn { width: 90px; height: 90px; }
     .act-btn svg { width: 70px; height: 70px; }
@@ -232,7 +232,7 @@
     #chalStat { top: 38px !important; left: 10px !important; transform: none !important; font-size: 11px !important; padding: 2px 8px !important; letter-spacing: 1px !important; }
     
     /* 提示文字居中置顶 */
-    #jumpTip { top: 14px !important; font-size: 14px !important; }
+    #jumpTip { top: 14px !important; font-size: 19px !important; }
     
     /* 优化竖排诗词间距与字号，避免与右上角暂停按钮重叠 */
     .vertical-poem { top: 75px; right: 10px; gap: 8px; }
@@ -310,7 +310,7 @@
   <!-- In-game HUD -->
   <div class="hud" id="hud" style="display:none">
     <div class="timer"><div class="clock"></div><span id="timeText">00"00</span></div>
-    <div class="jump-tip" id="jumpTip">长按跳跃</div>
+    <div class="jump-tip" id="jumpTip">长按空白处跳跃</div>
     <div id="chalStat" style="display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);font-size:14px;font-weight:800;letter-spacing:2px;color:var(--ink2);background:rgba(236,229,212,.6);border:2px solid var(--ink2);border-radius:18px;padding:4px 14px;text-shadow:0 1px 0 rgba(255,255,255,.5)"></div>
     <div class="round-btn" id="btnPause"><div class="bars"><span></span><span></span></div></div>
     <div class="ink-hearts" id="inkHearts" style="display:none"><span class="ink-heart">❤</span><span class="ink-heart">❤</span><span class="ink-heart">❤</span></div>
@@ -3832,7 +3832,7 @@
       const jt = this.el("jumpTip");
       if (jt) {
         jt.style.top = (Game.mode === "challenge" || Game.mode === "couplet") ? "46px" : "14px";
-        jt.textContent = Game.mode === "couplet" ? "长按换字 · 墨时慢放" : "长按跳跃";
+        jt.textContent = Game.mode === "couplet" ? "长按换字 · 墨时慢放" : "长按空白处跳跃";
       }
       // 对诗V2：隐藏跳跃/技能按钮，换字按钮居中，隐藏顶部诗词栏
       const isCouplet = Game.mode === "couplet";
@@ -4368,8 +4368,40 @@
     el.addEventListener("pointercancel", reset);
     el.addEventListener("pointerleave", () => { if (jumping) reset(); });
   }
+  // 长按空白处（画布）跳跃 —— 与跳跃键同款的长按蓄力/悬浮逻辑。
+  // 空白处按压会穿透 pointer-events:none 的 HUD 落到画布上；按钮区域由按钮自身拦截，互不冲突。
+  function bindBlankJump(el) {
+    let pointerId = null, holdTimer = null, jumping = false;
+    const reset = () => {
+      clearTimeout(holdTimer); holdTimer = null;
+      if (jumping) Game.holdJump = false;
+      jumping = false; pointerId = null;
+    };
+    el.addEventListener("pointerdown", (e) => {
+      if (Game.tutorialPause) return;
+      if (Game.mode === "couplet") return;                       // 对诗模式不跳跃
+      if (Game.state !== "playing" || Game.paused || Game.dead) return;
+      e.preventDefault(); Sound.ensure();
+      pointerId = e.pointerId;
+      try { el.setPointerCapture(pointerId); } catch (err) {}
+      jumping = false;
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(() => {
+        jumping = true;
+        Game.holdJump = true;
+        Game.jump();
+      }, 180);
+    }, { passive: false });
+    el.addEventListener("pointerup", (e) => {
+      if (pointerId !== e.pointerId) return;
+      e.preventDefault(); reset();
+    }, { passive: false });
+    el.addEventListener("pointercancel", reset);
+    el.addEventListener("pointerleave", reset);
+  }
   function bindInputs() {
     bindSkillJumpPad(UI.el("btnJump"));
+    bindBlankJump(UI.el("game"));            // 长按空白处（画布）跳跃
     // btnChange: 普通模式=变色; 对诗模式=短按切字/长按墨时
     (function() {
       const btn = UI.el("btnChange");
